@@ -53,19 +53,19 @@ madoop \
 madoop \
   -input output2 \
   -output output3 \
-  -mapper map3.py \
-  -reducer reduce3.py
+  -mapper ./map3.py \
+  -reducer ./reduce3.py
 
 madoop \
   -input output3 \
   -output output4 \
-  -mapper map4.py \
-  -reducer reduce4.py
+  -mapper ./map4.py \
+  -reducer ./reduce4.py
 
 madoop \
   -input output4 \
   -output output5 \
-  -mapper map5.py \
-  -reducer reduce5.py \
-  -partitioner partition.py \
+  -mapper ./map5.py \
+  -reducer ./reduce5.py \
+  -partitioner ./partition.py \
   -numReduceTasks 3

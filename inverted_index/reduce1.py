@@ -5,7 +5,7 @@ import itertools
 
 from collections import Counter
 
-def reduce_one_group(key, group):
+def reduce_one_group(key, group, stopwords):
     """Reduce one group."""
     # one unique document id
     group_item = next(group)
@@ -15,7 +15,8 @@ def reduce_one_group(key, group):
 
     term_counter = Counter(g_arr)
     for term, freq in term_counter.items():
-        print(f"{term}\t{key},{freq}")
+        if term not in stopwords:
+            print(f"{term}\t{key},{freq}")
 
 
 
@@ -26,8 +27,14 @@ def keyfunc(line):
 
 def main():
     """Divide sorted lines into groups that share a key."""
+    stopwords = set()
+
+    with open("stopwords.txt", "r", encoding="utf-8") as f:
+        for line in f:
+            stopwords.add(line.strip())
+
     for key, group in itertools.groupby(sys.stdin, keyfunc):
-        reduce_one_group(key, group)
+        reduce_one_group(key, group, stopwords)
 
 
 if __name__ == "__main__":

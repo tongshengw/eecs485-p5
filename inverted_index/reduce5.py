@@ -9,7 +9,7 @@ from collections import defaultdict
 def reduce_one_group(key, group):
     """Reduce one group."""
     group_arr = list(group)
-    print(group_arr)
+    # print(group_arr)
     term_dict = defaultdict(list)
     term_idf = {}
     for g in group_arr:
@@ -22,10 +22,10 @@ def reduce_one_group(key, group):
 
     for term, values in sorted(term_dict.items()):
         idf = term_idf[term]
-        output_str = f"{key} {term_idf} "
+        output_str = f"{term} {idf} "
         for docid, tf, norm in values:
             output_str += f"{docid} {tf} {norm} "
-        print(output_str)
+        print(output_str.strip())
 
 
 
