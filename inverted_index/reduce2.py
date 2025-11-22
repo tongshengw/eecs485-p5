@@ -29,7 +29,7 @@ def main():
             content = f.read()
             num_files = int(content)
     except Exception as e:
-        print(e)
+        print(e, file=sys.stderr)
         exit(1)
 
     for key, group in itertools.groupby(sys.stdin, keyfunc):
