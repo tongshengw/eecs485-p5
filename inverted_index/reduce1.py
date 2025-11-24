@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Reduce 1"""
+"""Reduce 1."""
 import sys
 import itertools
 
 from collections import Counter
+
 
 def reduce_one_group(key, group, stopwords):
     """Reduce one group."""
@@ -17,7 +18,6 @@ def reduce_one_group(key, group, stopwords):
     for term, freq in term_counter.items():
         if term not in stopwords:
             print(f"{term}\t{key},{freq}")
-
 
 
 def keyfunc(line):

@@ -1,4 +1,5 @@
 #!/usr/bin/env -S python3 -u
+"""Partitions based on key."""
 import sys
 
 

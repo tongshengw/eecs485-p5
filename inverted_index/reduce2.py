@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reduce 2"""
+"""Reduce 2."""
 import sys
 import itertools
 import math
@@ -16,7 +16,6 @@ def reduce_one_group(key, group, num_files):
         print(f"{key}\t{docid},{idf},{freq}")
 
 
-
 def keyfunc(line):
     """Return the key from a TAB-delimited key-value pair."""
     return line.partition("\t")[0]
@@ -25,12 +24,12 @@ def keyfunc(line):
 def main():
     """Divide sorted lines into groups that share a key."""
     try:
-        with open("total_document_count.txt", "r") as f:
+        with open("total_document_count.txt", "r", encoding="utf-8") as f:
             content = f.read()
             num_files = int(content)
-    except Exception as e:
+    except OSError as e:
         print(e, file=sys.stderr)
-        exit(1)
+        sys.exit(1)
 
     for key, group in itertools.groupby(sys.stdin, keyfunc):
         reduce_one_group(key, group, num_files)

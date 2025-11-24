@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Reduce 5"""
+"""Reduce 5."""
 import sys
 import itertools
 
 
 from collections import defaultdict
 
-def reduce_one_group(key, group):
+
+def reduce_one_group(group):
     """Reduce one group."""
     group_arr = list(group)
     # print(group_arr)
@@ -28,7 +29,6 @@ def reduce_one_group(key, group):
         print(output_str.strip())
 
 
-
 def keyfunc(line):
     """Return the key from a TAB-delimited key-value pair."""
     return line.partition("\t")[0]
@@ -36,8 +36,8 @@ def keyfunc(line):
 
 def main():
     """Divide sorted lines into groups that share a key."""
-    for key, group in itertools.groupby(sys.stdin, keyfunc):
-        reduce_one_group(key, group)
+    for _, group in itertools.groupby(sys.stdin, keyfunc):
+        reduce_one_group(group)
 
 
 if __name__ == "__main__":

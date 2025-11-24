@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Map 1"""
+"""Map 1."""
 import re
 import sys
 import bs4
@@ -25,7 +25,9 @@ for line in sys.stdin:
     soup = bs4.BeautifulSoup(HTML, "html.parser")
 
     # Get docid from document
-    doc_id = soup.find("meta", attrs={"eecs485_docid": True}).get("eecs485_docid")
+    doc_id = soup.find("meta", attrs={"eecs485_docid": True}).get(
+        "eecs485_docid"
+    )
 
     # Parse content from document
     # get_text() will strip extra whitespace and
@@ -34,8 +36,7 @@ for line in sys.stdin:
     content = element.get_text(separator=" ", strip=True)
     # Remove extra newlines
     content = content.replace("\n", " ")
-    
-    # FIXME Map 1 output.  Emit one line for each document, including the doc
+
     # ID and document content (You will need them later!)
     text = re.sub(r"[^a-zA-Z0-9 ]+", "", content)
-    print(f"{ doc_id }\t{text.casefold()}")
+    print(f"{doc_id}\t{text.casefold()}")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reduce 4"""
+"""Reduce 4."""
 import sys
 import itertools
 import math
@@ -8,17 +8,18 @@ import math
 def reduce_one_group(key, group):
     """Reduce one group."""
     group_arr = list(group)
-    normalisation_sq = 0
+    n_sq = 0
     for g in group_arr:
         _, values = g.strip().split("\t")
         term, tf, idf = values.split(",")
-        normalisation_sq += (int(tf) * float(idf)) ** 2
+        n_sq += (int(tf) * float(idf)) ** 2
 
     for g in group_arr:
         _, values = g.strip().split("\t")
         term, tf, idf = values.split(",")
-        print(f"{int(key) % 3}\t{term},{key},{tf},{idf},{math.sqrt(normalisation_sq)}")
-
+        print(
+            f"{int(key) % 3}\t{term},{key},{tf},{idf},{math.sqrt(n_sq)}"
+        )
 
 
 def keyfunc(line):

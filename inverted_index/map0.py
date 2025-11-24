@@ -4,4 +4,4 @@ import sys
 
 for line in sys.stdin:
     if "<!DOCTYPE html>" in line:
-        print(f"page_count\t1")
+        print("page_count\t1")
