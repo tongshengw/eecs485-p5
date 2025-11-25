@@ -1,0 +1,94 @@
+#!/bin/bash
+
+# Stop on errors
+# See https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
+set -Eeuo pipefail
+
+COMMAND="${1:-}"
+
+# Check if database exists
+check_database() {
+    if [ ! -f "var/search.sqlite3" ]; then
+        echo "Error: can't find search database var/search.sqlite3"
+        echo "Try: ./bin/searchdb"
+        exit 1
+    fi
+}
+
+# Check if index server is running
+check_index_server() {
+    if ! pgrep -f "flask --app index run --host 0.0.0.0 --port 900" > /dev/null; then
+        echo "Error: index server is not running"
+        echo "Try ./bin/index start"
+        exit 1
+    fi
+}
+
+# Check if search server is already running
+check_running() {
+    if pgrep -f "flask --app search run --host 0.0.0.0 --port 8000" > /dev/null; then
+        echo "Error: search server is already running"
+        exit 1
+    fi
+}
+
+# Start search server
+start() {
+    check_database
+    check_index_server
+    check_running
+    
+    echo "starting search server ..."
+    set -x
+    mkdir -p var/log
+    rm -f var/log/search.log
+    flask --app search run --host 0.0.0.0 --port 8000 &> var/log/search.log &
+    set +x
+}
+
+# Stop search server
+stop() {
+    echo "stopping search server ..."
+    set -x
+    pkill -f 'flask --app search run --host 0.0.0.0 --port 8000' || true
+    set +x
+}
+
+# Restart search server
+restart() {
+    stop
+    start
+}
+
+# Check status
+status() {
+    if pgrep -f "flask --app search run --host 0.0.0.0 --port 8000" > /dev/null; then
+        echo "search server running"
+        exit 0
+    else
+        echo "search server stopped"
+        exit 1
+    fi
+}
+
+# Main command dispatcher
+case "$COMMAND" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        restart
+        ;;
+    status)
+        status
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status}"
+        exit 1
+        ;;
+esac
+
+

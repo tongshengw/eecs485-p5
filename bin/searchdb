@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+"""Extract document details and populate search database."""
+
+import pathlib
+import sqlite3
+from bs4 import BeautifulSoup
+
+
+def get_summary(soup):
+    """Extract summary from soup."""
+    summary = ""
+    p_elts = soup.find_all("p", class_=False)
+    for p in p_elts:
+        p = p.text
+        # If the body isn't empty and longer than 50 characters (arbitrary)
+        if p.strip() and len(p) > 50:
+            # Limit summary to 250 characters (including truncation)
+            summary = p.strip()[0:247]
+
+            # Replace newlines to format query string
+            summary = summary.replace("\n", " ")
+
+            # Truncate endings
+            summary = summary + "..."
+            break
+
+    return summary
+
+
+def main():
+    """Main function."""
+    # Default paths
+    input_dir = pathlib.Path("inverted_index/crawl")
+    output_path = pathlib.Path("var/search.sqlite3")
+
+    # Create output directory if needed
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Remove existing database if it exists
+    if output_path.exists():
+        output_path.unlink()
+
+    # Create database and table
+    conn = sqlite3.connect(output_path)
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE documents (
+            docid INTEGER PRIMARY KEY,
+            title VARCHAR(150),
+            summary VARCHAR(250),
+            url VARCHAR(150)
+        )
+    """)
+
+    # Process all HTML files in input directory
+    html_files = sorted(input_dir.glob("*.html"))
+    total_files = len(html_files)
+    processed = 0
+    
+    for html_file in html_files:
+        try:
+            with open(html_file, "r", encoding="utf-8", errors="ignore") as f:
+                soup = BeautifulSoup(f.read(), "html.parser")
+
+            # Extract docid
+            docid_meta = soup.find("meta", attrs={"eecs485_docid": True})
+            if not docid_meta:
+                processed += 1
+                continue
+            docid = int(docid_meta.get("eecs485_docid"))
+
+            # Extract URL
+            url_meta = soup.find("meta", attrs={"eecs485_url": True})
+            if not url_meta:
+                processed += 1
+                continue
+            url = url_meta.get("eecs485_url")
+
+            # Extract title (remove "- Wikipedia" suffix)
+            title_tag = soup.find("title")
+            if not title_tag:
+                processed += 1
+                continue
+            title = title_tag.text.strip()
+            if title.endswith(" - Wikipedia"):
+                title = title[:-12].strip()
+
+            # Extract summary
+            summary = get_summary(soup)
+
+            # Insert into database
+            cur.execute(
+                "INSERT INTO documents (docid, title, summary, url) VALUES (?, ?, ?, ?)",
+                (docid, title, summary, url)
+            )
+            
+            processed += 1
+            if processed % 100 == 0:
+                print(f"Processed {processed}/{total_files} files...", flush=True)
+        except Exception as e:
+            # Skip malformed files
+            processed += 1
+            continue
+
+    # Commit and close
+    conn.commit()
+    conn.close()
+
+    print(f"Created {output_path}")
+    print(f"Processed {processed} files total")
+
+
+if __name__ == "__main__":
+    main()
+
+
