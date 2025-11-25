@@ -14,90 +14,96 @@ def get_index():
     return flask.jsonify({"hits": "/api/v1/hits/", "url": "/api/v1/"})
 
 
+def _parse_query_and_filter_stopwords(query):
+    """Parse and filter stopwords from the query."""
+    query = re.sub(r"[^a-zA-Z0-9 ]+", "", query)
+    query = query.casefold()
+    query_terms = query.split()
+
+    terms = [
+        word for word in query_terms if word not in index.stopwords
+    ]
+    return terms
+
+
+def _calculate_query_vector(terms):
+    """Calculate the query vector."""
+    q_vec = {}
+    for term in terms:
+        if term not in index.inverted_index:
+            return None
+
+        idf = index.inverted_index[term]["idf"]
+        tf = terms.count(term)
+        q_vec[term] = tf * idf
+    return q_vec
+
+
+def _process_postings(q_vec):
+    """Process postings to calculate dot products."""
+    doc_scores = {}
+    for term, q_val in q_vec.items():
+        postings = index.inverted_index[term]["postings"]
+        for posting in postings:
+            doc_id = posting["doc_id"]
+            if doc_id not in doc_scores:
+                doc_scores[doc_id] = {
+                    "dot_product": 0.0,
+                    "doc_norm": posting["norm"],
+                    "terms_found": 0,
+                }
+            idf = index.inverted_index[term]["idf"]
+            d_val = posting["tf"] * idf
+            doc_scores[doc_id]["dot_product"] += q_val * d_val
+            doc_scores[doc_id]["terms_found"] += 1
+    return doc_scores
+
+
+def _calculate_final_scores_and_sort(doc_scores, q_vec, weight):
+    """Calculate final scores and sort the results."""
+    q_norm = math.sqrt(sum(w**2 for w in q_vec.values()))
+    if q_norm == 0:
+        return []
+
+    results = []
+    num_terms = len(q_vec)
+    for doc_id, data in doc_scores.items():
+        if data["terms_found"] < num_terms:
+            continue
+
+        doc_norm = data["doc_norm"]
+        if doc_norm == 0:
+            cosine = 0.0
+        else:
+            dot_product = data["dot_product"]
+            cosine = dot_product / (q_norm * doc_norm)
+
+        pagerank = index.pagerank.get(doc_id, 0.0)
+        score = weight * pagerank + (1 - weight) * cosine
+
+        results.append({"docid": doc_id, "score": score})
+
+    results.sort(key=lambda x: x["score"], reverse=True)
+    return results
+
+
 @index.app.route("/api/v1/hits/", methods=["GET"])
 def hits():
     """Find hits."""
     query = flask.request.args.get("q")
     weight = flask.request.args.get("w", 0.5, type=float)
 
-    # Parse Query string
-    query = re.sub(r"[^a-zA-Z0-9 ]+", "", query)
-    query = query.casefold()
-    query_terms = query.split()
+    terms = _parse_query_and_filter_stopwords(query)
+    q_vec = _calculate_query_vector(terms)
 
-    # Filter stopwords
-    terms = []
-    for word in query_terms:
-        if word not in index.stopwords:
-            terms.append(word)
-
-    # doc_id -> {score components}
-    doc_scores = {}
-
-    # q_vec: term -> weight
-    q_vec = {}
-    for term in terms:
-        if term in index.inverted_index:
-            idf = index.inverted_index[term]["idf"]
-            tf = terms.count(term)
-            q_vec[term] = tf * idf
-        else:
-            return flask.jsonify({"hits": []})
-
-    q_norm = math.sqrt(sum(w**2 for w in q_vec.values()))
-
-    if q_norm == 0:
+    if not q_vec:
         return flask.jsonify({"hits": []})
 
-    # Process postings
-    for term, q_val in q_vec.items():
-        postings = index.inverted_index[term]["postings"]
-        for posting in postings:
-            doc_id = posting["doc_id"]
-            doc_tf = posting["tf"]
-            doc_norm = posting["norm"]
-            idf = index.inverted_index[term]["idf"]
+    doc_scores = _process_postings(q_vec)
 
-            # doc weight for this term
-            d_val = doc_tf * idf
-
-            if doc_id not in doc_scores:
-                doc_scores[doc_id] = {
-                    "dot_product": 0.0,
-                    "doc_norm": doc_norm,
-                    "terms_found": 0,
-                }
-
-            doc_scores[doc_id]["dot_product"] += q_val * d_val
-            doc_scores[doc_id]["terms_found"] += 1
-
-    # Final score calculation
-    results = []
-    num_terms = len(q_vec)
-    for doc_id, data in doc_scores.items():
-
-        if data["terms_found"] < num_terms:
-            continue
-
-        dot_product = data["dot_product"]
-        doc_norm = data["doc_norm"]
-
-        # Cosine similarity
-        if doc_norm == 0:
-            cosine = 0.0
-        else:
-            cosine = dot_product / (q_norm * doc_norm)
-
-        # PageRank
-        pagerank = index.pagerank.get(doc_id, 0.0)
-
-        # Weighted score
-        score = weight * pagerank + (1 - weight) * cosine
-
-        results.append({"docid": doc_id, "score": score})
-
-    # Sort by score descending
-    results.sort(key=lambda x: x["score"], reverse=True)
+    results = _calculate_final_scores_and_sort(
+        doc_scores, q_vec, weight
+    )
 
     return flask.jsonify({"hits": results})
 
