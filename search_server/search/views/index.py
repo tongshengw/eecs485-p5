@@ -2,6 +2,7 @@
 
 import threading
 import urllib.parse
+
 import flask
 import requests
 import search
@@ -13,13 +14,13 @@ def show_index():
     """Display search page with results."""
     query = flask.request.args.get("q", "")
     weight = flask.request.args.get("w", "0.5", type=str)
-    
+
     # Convert weight to float, default to 0.5
     try:
         weight_float = float(weight)
     except (ValueError, TypeError):
         weight_float = 0.5
-    
+
     # Ensure weight is between 0 and 1
     weight_float = max(0.0, min(1.0, weight_float))
     weight = str(weight_float)
@@ -35,9 +36,7 @@ def show_index():
             """Fetch hits from a single index server."""
             try:
                 response = requests.get(
-                    url,
-                    params={"q": query, "w": weight_float},
-                    timeout=10
+                    url, params={"q": query, "w": weight_float}, timeout=10
                 )
                 if response.status_code == 200:
                     data = response.json()
@@ -80,22 +79,25 @@ def show_index():
                 doc = search.model.get_document(docid)
                 if doc:
                     url = doc["url"]
-                    # First decode to get canonical form (in case URL is already encoded)
+                    # First decode to get canonical form
                     url_decoded = urllib.parse.unquote(url)
                     # Then encode for href (percent-encoded)
-                    url_encoded = urllib.parse.quote(url_decoded, safe=":/?#[]@!$&'()*+,;=")
-                    results.append({
-                        "docid": doc["docid"],
-                        "title": doc["title"],
-                        "summary": doc["summary"] if doc["summary"] else "No summary available",
-                        "url_encoded": url_encoded,
-                        "url_decoded": url_decoded
-                    })
+                    url_encoded = urllib.parse.quote(
+                        url_decoded, safe=":/?#[]@!$&'()*+,;="
+                    )
+                    results.append(
+                        {
+                            "docid": doc["docid"],
+                            "title": doc["title"],
+                            "summary": (
+                                doc["summary"]
+                                if doc["summary"]
+                                else "No summary available"
+                            ),
+                            "url_encoded": url_encoded,
+                            "url_decoded": url_decoded,
+                        }
+                    )
 
-    context = {
-        "query": query,
-        "weight": weight,
-        "results": results
-    }
+    context = {"query": query, "weight": weight, "results": results}
     return flask.render_template("index.html", **context)
-

@@ -17,10 +17,8 @@ def get_document(docid):
     conn = get_db()
     cur = conn.execute(
         "SELECT docid, title, summary, url FROM documents WHERE docid = ?",
-        (docid,)
+        (docid,),
     )
     row = cur.fetchone()
     conn.close()
     return row
-
-
